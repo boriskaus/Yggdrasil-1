@@ -152,6 +152,9 @@ build_petsc()
     echo "COPTFLAGS="${_COPTFLAGS}
     echo "BLAS_LAPACK_LIB="$BLAS_LAPACK_LIB
 
+ #   --with-blaslapack-lib=${BLAS_LAPACK_LIB}  \
+ #   --with-blaslapack-suffix=""  \
+
     mkdir $libdir/petsc/${PETSC_CONFIG}
     ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
         CC=${CC} \
@@ -160,8 +163,6 @@ build_petsc()
         COPTFLAGS=${_COPTFLAGS} \
         CXXOPTFLAGS=${_CXXOPTFLAGS} \
         FOPTFLAGS=${_FOPTFLAGS}  \
-        --with-blaslapack-lib=${BLAS_LAPACK_LIB}  \
-        --with-blaslapack-suffix=""  \
         CFLAGS='-fno-stack-protector '  \
         FFLAGS="${MPI_FFLAGS}"  \
         LDFLAGS="${LIBFLAGS}"  \
