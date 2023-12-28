@@ -25,7 +25,7 @@ cd $WORKSPACE/srcdir/petsc*
 atomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch
 
 if [[ "${target}" == *-apple* ]]; then
-    BLAS_LAPACK_LIB=
+    BLAS_LAPACK_LIB=""
 else
     BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
 fi
