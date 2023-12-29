@@ -5,7 +5,7 @@ include(joinpath(YGGDRASIL_DIR, "platforms", "mpi.jl"))
 
 name = "PETSc"
 version = v"3.18.6"
-petsc_version = v"3.18.6"
+petsc_version = v"3.20.0"
 MUMPS_COMPAT_VERSION = "5.5.1"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
@@ -14,15 +14,15 @@ MPItrampoline_compat_version="5.2.1"
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
 # require building SOWING which fails in all non-linux platforms.
 sources = [
-    ArchiveSource("https://www.mcs.anl.gov/petsc/mirror/release-snapshots/petsc-$(petsc_version).tar.gz",
-    "8b53c8b6652459ba0bbe6361b5baf8c4d17c1d04b6654a76e3b6a9ab4a576680"),
+    ArchiveSource("https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-$(petsc_version).tar.gz",
+    "c152ccb12cb2353369d27a65470d4044a0c67e0b69814368249976f5bb232bd4"),
     DirectorySource("./bundled"),
 ]
 
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir/petsc*
-atomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch
 
 if [[ "${target}" == *-apple* ]]; then
     BLAS_LAPACK_LIB=
@@ -52,10 +52,10 @@ else
 fi
 
 
-atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch         
-atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch
-atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch   
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch   
 
 mkdir $libdir/petsc
 build_petsc()
