@@ -4,12 +4,17 @@ const YGGDRASIL_DIR = "../.."
 include(joinpath(YGGDRASIL_DIR, "platforms", "mpi.jl"))
 
 name = "PETSc"
-version = v"3.18.6"
+version = v"3.20.0"
 petsc_version = v"3.20.0"
 MUMPS_COMPAT_VERSION = "5.5.1"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
 MPItrampoline_compat_version="5.2.1"    
+
+SCALAPACK32_COMPAT_VERSION="2.2.1"
+METIS_COMPAT_VERSION="5.1.2"
+SCOTCH_COMPAT_VERSION="6.1.3"
+PARMETIS_COMPAT_VERSION="4.0.6"
 
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
 # require building SOWING which fails in all non-linux platforms.
@@ -52,21 +57,20 @@ else
 fi
 
 
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch     # taken care off in sosuffix.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch         
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch   
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch     # not needed anymore?
+atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          
 
 mkdir $libdir/petsc
 build_petsc()
 {
     # Compile a debug version?
     DEBUG_FLAG=0
+    PETSC_CONFIG="${1}_${2}_${3}"
     if [[ "${4}" == "deb" ]]; then
         PETSC_CONFIG="${1}_${2}_${3}_deb"
         DEBUG_FLAG=1
-    else
-        PETSC_CONFIG="${1}_${2}_${3}"
     fi
 
     if [[ "${3}" == "Int64" ]]; then
@@ -123,9 +127,17 @@ build_petsc()
         LIBFLAGS="-L${libdir} -lssp" 
     fi
 
-    if [[ "${target}" == *-apple* ]]; then 
-        LIBFLAGS="-L${libdir} -framework Accelerate" 
+    if [[ "${target}" == aarch64-apple-* ]]; then    
+        LIBFLAGS="-L${libdir}" 
+        # Linking requires the function `__divdc3`, which is implemented in
+        # `libclang_rt.osx.a` from LLVM compiler-rt.
+        #BLAS_LAPACK_LIB="${libdir}/libblastrampoline.${dlext}"
+        CLINK_FLAGS="-L${libdir}/darwin -lclang_rt.osx"
+    else
+        #BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
+        CLINK_FLAGS=""
     fi
+    BLAS_LAPACK_LIB="${libdir}/libblastrampoline.${dlext}"
 
     if  [ ${DEBUG_FLAG} == 1 ]; then
         _COPTFLAGS='-O0 -g'
@@ -151,20 +163,22 @@ build_petsc()
     echo "DEBUG="${DEBUG_FLAG}
     echo "COPTFLAGS="${_COPTFLAGS}
     echo "BLAS_LAPACK_LIB="$BLAS_LAPACK_LIB
-
+    echo "prefix="${libdir}/petsc/${PETSC_CONFIG}
+    
     mkdir $libdir/petsc/${PETSC_CONFIG}
+
     ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
-        CC=${CC} \
-        FC=${FC} \
-        CXX=${CXX} \
-        COPTFLAGS=${_COPTFLAGS} \
-        CXXOPTFLAGS=${_CXXOPTFLAGS} \
-        FOPTFLAGS=${_FOPTFLAGS}  \
+        --CC=${CC} \
+        --FC=${FC} \
+        --CXX=${CXX} \
+        --COPTFLAGS=${_COPTFLAGS} \
+        --CXXOPTFLAGS=${_CXXOPTFLAGS} \
+        --FOPTFLAGS=${_FOPTFLAGS}  \
         --with-blaslapack-lib=${BLAS_LAPACK_LIB}  \
-        --with-blaslapack-suffix=""  \
-        CFLAGS='-fno-stack-protector '  \
-        FFLAGS="${MPI_FFLAGS}"  \
-        LDFLAGS="${LIBFLAGS}"  \
+        --CFLAGS='-fno-stack-protector '  \
+        --FFLAGS="${MPI_FFLAGS}"  \
+        --LDFLAGS="${LIBFLAGS}"  \
+        --CC_LINKER_FLAGS="${CLINK_FLAGS}" \
         --with-64-bit-indices=${USE_INT64}  \
         --with-debugging=${DEBUG_FLAG}  \
         --with-batch \
@@ -184,6 +198,7 @@ build_petsc()
         ${MUMPS_INCLUDE} \
         --with-suitesparse=${USE_SUITESPARSE} \
         --SOSUFFIX=${PETSC_CONFIG} \
+        --with-shared-libraries=1 \
         --with-clean=1
 
     if [[ "${target}" == *-mingw* ]]; then
@@ -228,14 +243,16 @@ build_petsc()
 }
 
 build_petsc double real Int64 opt
-build_petsc double real Int64 deb       # compile at least one debug version
-build_petsc double real Int32 opt
-build_petsc single real Int32 opt
-build_petsc double complex Int32 opt
-build_petsc single complex Int32 opt
-build_petsc single real Int64 opt
-build_petsc double complex Int64 opt
-build_petsc single complex Int64 opt
+#build_petsc double real Int64 deb       # compile at least one debug version
+#build_petsc double real Int32 opt
+#build_petsc single real Int32 opt
+#build_petsc double complex Int32 opt
+#build_petsc single complex Int32 opt
+#build_petsc single real Int64 opt
+#build_petsc double complex Int64 opt
+#build_petsc single complex Int64 opt
+
+"boe"
 """
 
 augment_platform_block = """
@@ -265,14 +282,14 @@ products = [
     # Current default build, equivalent to Float64_Real_Int32
     LibraryProduct("libpetsc_double_real_Int64", :libpetsc, "\$libdir/petsc/double_real_Int64/lib")
     LibraryProduct("libpetsc_double_real_Int64", :libpetsc_Float64_Real_Int64, "\$libdir/petsc/double_real_Int64/lib")
-    LibraryProduct("libpetsc_double_real_Int64_deb", :libpetsc_Float64_Real_Int64_deb, "\$libdir/petsc/double_real_Int64_deb/lib")
-    LibraryProduct("libpetsc_double_real_Int32", :libpetsc_Float64_Real_Int32, "\$libdir/petsc/double_real_Int32/lib")
-    LibraryProduct("libpetsc_single_real_Int32", :libpetsc_Float32_Real_Int32, "\$libdir/petsc/single_real_Int32/lib")
-    LibraryProduct("libpetsc_double_complex_Int32", :libpetsc_Float64_Complex_Int32, "\$libdir/petsc/double_complex_Int32/lib")
-    LibraryProduct("libpetsc_single_complex_Int32", :libpetsc_Float32_Complex_Int32, "\$libdir/petsc/single_complex_Int32/lib")
-    LibraryProduct("libpetsc_single_real_Int64", :libpetsc_Float32_Real_Int64, "\$libdir/petsc/single_real_Int64/lib")
-    LibraryProduct("libpetsc_double_complex_Int64", :libpetsc_Float64_Complex_Int64, "\$libdir/petsc/double_complex_Int64/lib")
-    LibraryProduct("libpetsc_single_complex_Int64", :libpetsc_Float32_Complex_Int64, "\$libdir/petsc/single_complex_Int64/lib")
+    #LibraryProduct("libpetsc_double_real_Int64_deb", :libpetsc_Float64_Real_Int64_deb, "\$libdir/petsc/double_real_Int64_deb/lib")
+    #LibraryProduct("libpetsc_double_real_Int32", :libpetsc_Float64_Real_Int32, "\$libdir/petsc/double_real_Int32/lib")
+    #LibraryProduct("libpetsc_single_real_Int32", :libpetsc_Float32_Real_Int32, "\$libdir/petsc/single_real_Int32/lib")
+    #LibraryProduct("libpetsc_double_complex_Int32", :libpetsc_Float64_Complex_Int32, "\$libdir/petsc/double_complex_Int32/lib")
+    #LibraryProduct("libpetsc_single_complex_Int32", :libpetsc_Float32_Complex_Int32, "\$libdir/petsc/single_complex_Int32/lib")
+    #LibraryProduct("libpetsc_single_real_Int64", :libpetsc_Float32_Real_Int64, "\$libdir/petsc/single_real_Int64/lib")
+    #LibraryProduct("libpetsc_double_complex_Int64", :libpetsc_Float64_Complex_Int64, "\$libdir/petsc/double_complex_Int64/lib")
+    #LibraryProduct("libpetsc_single_complex_Int64", :libpetsc_Float32_Complex_Int64, "\$libdir/petsc/single_complex_Int64/lib")
 
 ]
 
@@ -282,6 +299,8 @@ dependencies = [
     Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
     Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
     Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
+    Dependency("libblastrampoline_jll"),
+    BuildDependency("LLVMCompilerRT_jll"; platforms=[Platform("aarch64", "macos")]),
     Dependency("SCALAPACK32_jll"),
     Dependency("METIS_jll"),
     Dependency("SCOTCH_jll"),
@@ -296,4 +315,7 @@ ENV["MPITRAMPOLINE_DELAY_INIT"] = "1"
 
 # Build the tarballs.
 build_tarballs(ARGS, name, version, sources, script, platforms, products, dependencies;
-               augment_platform_block, julia_compat="1.10", preferred_gcc_version = v"9")
+               augment_platform_block, 
+               julia_compat="1.10", 
+               preferred_gcc_version=v"9", 
+               preferred_llvm_version=v"16")
