@@ -174,6 +174,11 @@ build_petsc()
     if [ -f "${libdir}/libtet.${dlext}" ]; then
         USE_TETGEN=1    
         TETGEN_LIB="--with-tetgen-lib=${libdir}/libtet.${dlext}"
+        TETGEN_INCLUDE="--with-tetgen-include=${includedir}"
+        cp ../headers/tetgen.h $includedir
+    else
+        TETGEN_LIB=""
+        TETGEN_INCLUDE=""
     fi
 
     echo "1="${1}
@@ -229,7 +234,8 @@ build_petsc()
         ${MUMPS_INCLUDE} \
         --with-suitesparse=${USE_SUITESPARSE} \
         --with-hdf5=${USE_HDF5} \
-        --with-tetgen=${USE_TETGEN} \
+        ${TETGEN_LIB} \
+        ${TETGEN_INCLUDE} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
