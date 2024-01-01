@@ -11,6 +11,9 @@ SUITESPARSE_COMPAT_VERSION = "7.2.1"
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
 MPItrampoline_COMPAT_VERSION="5.2.1"    
 HDF5_COMPAT_VERSION="1.14.2"
+TRIANGLE_COMPAT_VERSION="1.6.2"
+TETGEN_COMPAT_VERSION="1.5.3"
+
 
 SCALAPACK32_COMPAT_VERSION="2.2.1"
 METIS_COMPAT_VERSION="5.1.2"
@@ -150,13 +153,28 @@ build_petsc()
     USE_HDF5=0
     if [ -f "${libdir}/libhdf5.${dlext}" ]; then
         USE_HDF5=1    
-        HDF5_LIB="--with-hdf5-lib=${libdir}/libhdf5.${dlext}"
-        HDF5_INCLUDE="--with-hdf5-include=${includedir}"
-    else
-        HDF5_LIB=""
-        HDF5_INCLUDE=""
     fi
     
+    # See if we can install the Triangle mesh generator
+    USE_TRIANGLE=0
+    if [ -f "${libdir}/libtriangle.${dlext}" ]; then
+        USE_TRIANGLE=1    
+        TRIANGLE_LIB="--with-triangle-lib=${libdir}/libtriangle.${dlext}"
+        TRIANGLE_INCLUDE="--with-triangle-include=${includedir}"
+
+        # Triangle_jll does not ship triangle.h, so we do
+        cp ../headers/triangle.h $includedir
+    else
+        TRIANGLE_LIB=""
+        TRIANGLE_INCLUDE=""
+    fi
+
+    # See if we can install TetGen
+    USE_TETGEN=0
+    if [ -f "${libdir}/libtet.${dlext}" ]; then
+        USE_TETGEN=1    
+        TETGEN_LIB="--with-tetgen-lib=${libdir}/libtet.${dlext}"
+    fi
 
     echo "1="${1}
     echo "2="${2}
@@ -174,6 +192,9 @@ build_petsc()
     echo "USE_SUITESPARSE="$USE_SUITESPARSE
     echo "USE_MUMPS="$USE_MUMPS
     echo "USE_HDF5="$USE_HDF5
+    echo "USE_TRIANGLE="$USE_TRIANGLE
+    echo "USE_TETGEN="$USE_TETGEN
+    
     
     mkdir $libdir/petsc/${PETSC_CONFIG}
 
@@ -207,8 +228,8 @@ build_petsc()
         ${MUMPS_LIB} \
         ${MUMPS_INCLUDE} \
         --with-suitesparse=${USE_SUITESPARSE} \
-        ${HDF5_LIB} \
-        ${HDF5_INCLUDE} \
+        --with-hdf5=${USE_HDF5} \
+        --with-tetgen=${USE_TETGEN} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
@@ -311,6 +332,8 @@ dependencies = [
     Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
     Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
     Dependency("HDF5_jll"; compat=HDF5_COMPAT_VERSION),
+    Dependency("Triangle_jll"; compat=TRIANGLE_COMPAT_VERSION),
+    Dependency("TetGen_jll"; compat=TETGEN_COMPAT_VERSION),
     Dependency("libblastrampoline_jll"),
     BuildDependency("LLVMCompilerRT_jll"; platforms=[Platform("aarch64", "macos")]),
     Dependency("SCALAPACK32_jll"),

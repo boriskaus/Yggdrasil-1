@@ -1,6 +1,6 @@
 --- a/config/BuildSystem/config/setCompilers.py	2023-04-06 09:30:14
 +++ b/config/BuildSystem/config/setCompilers.py	2023-04-06 09:30:53
-@@ -627,10 +627,14 @@
+@@ -630,10 +630,14 @@
          if log: log.write('Detected Darwin')
          isDarwin_value = True
          import platform
