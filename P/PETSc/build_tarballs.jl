@@ -6,7 +6,7 @@ include(joinpath(YGGDRASIL_DIR, "platforms", "mpi.jl"))
 name = "PETSc"
 version = v"3.20.0"
 petsc_version = v"3.20.0"
-MUMPS_COMPAT_VERSION = "5.5.1"
+MUMPS_COMPAT_VERSION = "5.6.2"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
 MPItrampoline_compat_version="5.2.1"    
@@ -60,7 +60,7 @@ fi
 #atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch     # taken care off in sosuffix.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch         
 #atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch     # not needed anymore?
-atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          # appears to have an issue
 
 mkdir $libdir/petsc
 build_petsc()
@@ -115,7 +115,7 @@ build_petsc()
     USE_MUMPS=0    
     if [ -f "${libdir}/libdmumps.${dlext}" ] && [ "${1}" == "double" ] && [ "${2}" == "real" ]; then
         USE_MUMPS=1    
-        MUMPS_LIB="--with-mumps-lib=${libdir}/libdmumps.${dlext} --with-scalapack-lib=${libdir}/libscalapack32.${dlext}"
+        MUMPS_LIB="--with-mumps-lib=${libdir}/libdmumpspar.${dlext} --with-scalapack-lib=${libdir}/libscalapack32.${dlext}"
         MUMPS_INCLUDE="--with-mumps-include=${includedir} --with-scalapack-include=${includedir}"
     else
         MUMPS_LIB=""
@@ -252,7 +252,6 @@ build_petsc double real Int64 opt
 #build_petsc double complex Int64 opt
 #build_petsc single complex Int64 opt
 
-"boe"
 """
 
 augment_platform_block = """
