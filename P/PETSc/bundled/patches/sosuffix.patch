@@ -1,12 +1,12 @@
 diff --git a/config/PETSc/options/sharedLibraries.py b/config/PETSc/options/sharedLibraries.py
-index c1e7861c290..9755dd969bc 100755
+index c1e7861c290..67104ca7fba 100755
 --- a/config/PETSc/options/sharedLibraries.py
 +++ b/config/PETSc/options/sharedLibraries.py
 @@ -18,6 +18,7 @@ class Configure(config.base.Configure):
      import nargs
      help.addArgument('PETSc', '-with-shared-libraries=<bool>', nargs.ArgBool(None, 1, 'Make PETSc libraries shared -- libpetsc.so (Unix/Linux) or libpetsc.dylib (Mac)'))
      help.addArgument('PETSc', '-with-serialize-functions=<bool>', nargs.ArgBool(None, 0, 'Allows function pointers to be serialized to binary files with string representations'))
-+    help.addArgument('PETSc', '-with-serialize-functions=<bool>', nargs.ArgBool(None, 0, 'Allows function pointers to be serialized to binary files with string representations'))
++    help.addArgument('PETSc', '-SOSUFFIX=<string>', nargs.Arg(None, 0, 'Add a suffix to shared libraries'))
      return
  
    def setupDependencies(self, framework):
@@ -40,13 +40,12 @@ index c1e7861c290..9755dd969bc 100755
 -        self.addMakeMacro('SONAME_FUNCTION', '$(1).$(SL_LINKER_SUFFIX).$(2)')
 -        self.addMakeMacro('SL_LINKER_FUNCTION', self.framework.getSharedLinkerFlags() + ' -Wl,-soname,$(call SONAME_FUNCTION,$(notdir $(1)),$(2))')
          if config.setCompilers.Configure.isMINGW(self.framework.getCompiler(),self.log):
--          self.addMakeMacro('PETSC_DLL_EXPORTS', '1')
-+           self.addMakeMacro('PETSC_DLL_EXPORTS', '1')
-+           self.addMakeMacro('SONAME_FUNCTION', '$(1){0}-$(2).$(SL_LINKER_SUFFIX)'.format(self.SOSUFFIX))
+           self.addMakeMacro('PETSC_DLL_EXPORTS', '1')
++          self.addMakeMacro('SONAME_FUNCTION', '$(1){0}-$(2).$(SL_LINKER_SUFFIX)'.format(self.SOSUFFIX))
 +        else:
-+           self.addMakeMacro('SONAME_FUNCTION', '$(1){0}.$(SL_LINKER_SUFFIX).$(2)'.format(self.SOSUFFIX))
-+        self.addMakeMacro('SL_LINKER_FUNCTION', self.framework.getSharedLinkerFlags() + ' -Wl,-soname,$(call SONAME_FUNCTION,$(notdir $(1)),$(2))')
++          self.addMakeMacro('SONAME_FUNCTION', '$(1).$(SL_LINKER_SUFFIX).$(2)')
 +
++        self.addMakeMacro('SL_LINKER_FUNCTION', self.framework.getSharedLinkerFlags() + ' -Wl,-soname,$(call SONAME_FUNCTION,$(notdir $(1)),$(2))')
        self.addMakeMacro('BUILDSHAREDLIB','yes')
      else:
        self.addMakeRule('shared_arch','')

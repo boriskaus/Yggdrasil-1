@@ -57,10 +57,10 @@ else
 fi
 
 
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch     # taken care off in sosuffix.patch
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch     # now taken care off in sosuffix.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch         
 #atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch     # not needed anymore?
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          # appears to have an issue
+atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          
 
 mkdir $libdir/petsc
 build_petsc()
