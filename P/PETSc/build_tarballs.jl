@@ -9,11 +9,12 @@ petsc_version = v"3.20.0"
 MUMPS_COMPAT_VERSION = "5.6.2"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
-MPItrampoline_compat_version="5.2.1"    
+MPItrampoline_COMPAT_VERSION="5.2.1"    
+HDF5_COMPAT_VERSION="1.14.2"
 
 SCALAPACK32_COMPAT_VERSION="2.2.1"
 METIS_COMPAT_VERSION="5.1.2"
-SCOTCH_COMPAT_VERSION="6.1.3"
+SCOTCH_COMPAT_VERSION="7.0.4"
 PARMETIS_COMPAT_VERSION="4.0.6"
 
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
@@ -57,9 +58,7 @@ else
 fi
 
 
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch     # now taken care off in sosuffix.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch         
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/macos_version.patch     # not needed anymore?
 atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          
 
 mkdir $libdir/petsc
@@ -131,10 +130,8 @@ build_petsc()
         LIBFLAGS="-L${libdir}" 
         # Linking requires the function `__divdc3`, which is implemented in
         # `libclang_rt.osx.a` from LLVM compiler-rt.
-        #BLAS_LAPACK_LIB="${libdir}/libblastrampoline.${dlext}"
         CLINK_FLAGS="-L${libdir}/darwin -lclang_rt.osx"
     else
-        #BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
         CLINK_FLAGS=""
     fi
     BLAS_LAPACK_LIB="${libdir}/libblastrampoline.${dlext}"
@@ -149,9 +146,18 @@ build_petsc()
         _FOPTFLAGS='-O3' 
     fi
 
-    echo "USE_SUPERLU_DIST="$USE_SUPERLU_DIST
-    echo "USE_SUITESPARSE="$USE_SUITESPARSE
-    echo "USE_MUMPS="$USE_MUMPS
+    # See if we can install HDF5
+    USE_HDF5=0
+    if [ -f "${libdir}/libhdf5.${dlext}" ]; then
+        USE_HDF5=1    
+        HDF5_LIB="--with-hdf5-lib=${libdir}/libhdf5.${dlext}"
+        HDF5_INCLUDE="--with-hdf5-include=${includedir}"
+    else
+        HDF5_LIB=""
+        HDF5_INCLUDE=""
+    fi
+    
+
     echo "1="${1}
     echo "2="${2}
     echo "3="${3}
@@ -164,6 +170,10 @@ build_petsc()
     echo "COPTFLAGS="${_COPTFLAGS}
     echo "BLAS_LAPACK_LIB="$BLAS_LAPACK_LIB
     echo "prefix="${libdir}/petsc/${PETSC_CONFIG}
+    echo "USE_SUPERLU_DIST="$USE_SUPERLU_DIST
+    echo "USE_SUITESPARSE="$USE_SUITESPARSE
+    echo "USE_MUMPS="$USE_MUMPS
+    echo "USE_HDF5="$USE_HDF5
     
     mkdir $libdir/petsc/${PETSC_CONFIG}
 
@@ -197,6 +207,8 @@ build_petsc()
         ${MUMPS_LIB} \
         ${MUMPS_INCLUDE} \
         --with-suitesparse=${USE_SUITESPARSE} \
+        ${HDF5_LIB} \
+        ${HDF5_INCLUDE} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
@@ -243,8 +255,8 @@ build_petsc()
 }
 
 build_petsc double real Int64 opt
-#build_petsc double real Int64 deb       # compile at least one debug version
-#build_petsc double real Int32 opt
+build_petsc double real Int64 deb       # compile at least one debug version
+build_petsc double real Int32 opt
 #build_petsc single real Int32 opt
 #build_petsc double complex Int32 opt
 #build_petsc single complex Int32 opt
@@ -264,7 +276,7 @@ augment_platform_block = """
 platforms = expand_gfortran_versions(supported_platforms(exclude=[Platform("i686", "windows"),
                                                                   Platform("i686","linux"; libc="musl"),
                                                                   Platform("aarch64","linux"; libc="musl")]))
-platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat=MPItrampoline_compat_version)
+platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat=MPItrampoline_COMPAT_VERSION)
 
 # Avoid platforms where the MPI implementation isn't supported
 # OpenMPI
@@ -281,8 +293,8 @@ products = [
     # Current default build, equivalent to Float64_Real_Int32
     LibraryProduct("libpetsc_double_real_Int64", :libpetsc, "\$libdir/petsc/double_real_Int64/lib")
     LibraryProduct("libpetsc_double_real_Int64", :libpetsc_Float64_Real_Int64, "\$libdir/petsc/double_real_Int64/lib")
-    #LibraryProduct("libpetsc_double_real_Int64_deb", :libpetsc_Float64_Real_Int64_deb, "\$libdir/petsc/double_real_Int64_deb/lib")
-    #LibraryProduct("libpetsc_double_real_Int32", :libpetsc_Float64_Real_Int32, "\$libdir/petsc/double_real_Int32/lib")
+    LibraryProduct("libpetsc_double_real_Int64_deb", :libpetsc_Float64_Real_Int64_deb, "\$libdir/petsc/double_real_Int64_deb/lib")
+    LibraryProduct("libpetsc_double_real_Int32", :libpetsc_Float64_Real_Int32, "\$libdir/petsc/double_real_Int32/lib")
     #LibraryProduct("libpetsc_single_real_Int32", :libpetsc_Float32_Real_Int32, "\$libdir/petsc/single_real_Int32/lib")
     #LibraryProduct("libpetsc_double_complex_Int32", :libpetsc_Float64_Complex_Int32, "\$libdir/petsc/double_complex_Int32/lib")
     #LibraryProduct("libpetsc_single_complex_Int32", :libpetsc_Float32_Complex_Int32, "\$libdir/petsc/single_complex_Int32/lib")
@@ -298,12 +310,14 @@ dependencies = [
     Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
     Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
     Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
+    Dependency("HDF5_jll"; compat=HDF5_COMPAT_VERSION),
     Dependency("libblastrampoline_jll"),
     BuildDependency("LLVMCompilerRT_jll"; platforms=[Platform("aarch64", "macos")]),
     Dependency("SCALAPACK32_jll"),
     Dependency("METIS_jll"),
     Dependency("SCOTCH_jll"),
     Dependency("PARMETIS_jll"),
+    
 ]
 append!(dependencies, platform_dependencies)
 
@@ -315,6 +329,6 @@ ENV["MPITRAMPOLINE_DELAY_INIT"] = "1"
 # Build the tarballs.
 build_tarballs(ARGS, name, version, sources, script, platforms, products, dependencies;
                augment_platform_block, 
-               julia_compat="1.10", 
+               julia_compat="1.7", 
                preferred_gcc_version=v"9", 
                preferred_llvm_version=v"16")
