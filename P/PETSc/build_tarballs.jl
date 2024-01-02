@@ -9,11 +9,10 @@ petsc_version = v"3.20.0"
 MUMPS_COMPAT_VERSION = "5.6.2"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
-MPItrampoline_COMPAT_VERSION="5.2.1"    
+MPItrampoline_COMPAT_VERSION="5.3.1"    
 HDF5_COMPAT_VERSION="1.14.2"
 TRIANGLE_COMPAT_VERSION="1.6.2"
 TETGEN_COMPAT_VERSION="1.5.3"
-
 
 SCALAPACK32_COMPAT_VERSION="2.2.1"
 METIS_COMPAT_VERSION="5.1.2"
@@ -155,14 +154,14 @@ build_petsc()
         USE_HDF5=1    
     fi
     
-    # See if we can install the Triangle mesh generator
+    # Triangle:
     USE_TRIANGLE=0
     if [ -f "${libdir}/libtriangle.${dlext}" ]; then
         USE_TRIANGLE=1    
         TRIANGLE_LIB="--with-triangle-lib=${libdir}/libtriangle.${dlext}"
         TRIANGLE_INCLUDE="--with-triangle-include=${includedir}"
 
-        # Triangle_jll does not ship triangle.h, so we do
+        # Triangle_jll does not ship triangle.h, so we do (note that we used a PETSc-specific version of this)
         cp ../headers/triangle.h $includedir
     else
         TRIANGLE_LIB=""
@@ -234,8 +233,8 @@ build_petsc()
         ${MUMPS_INCLUDE} \
         --with-suitesparse=${USE_SUITESPARSE} \
         --with-hdf5=${USE_HDF5} \
-        ${TETGEN_LIB} \
-        ${TETGEN_INCLUDE} \
+        ${TRIANGLE_LIB} \
+        ${TRIANGLE_INCLUDE} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
@@ -273,6 +272,11 @@ build_petsc()
         workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/dm/impls/stag/tutorials/
         make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex4
         install -Dvm 755 ${workdir}/ex4* "${bindir}/ex4${exeext}"
+
+        # This is a DMPLEX 2D/3D finite element Stokes example, as discussed https://petsc.org/main/tutorials/physics/guide_to_stokes/
+        workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/snes/tutorials/
+        make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex62
+        install -Dvm 755 ${workdir}/ex4* "${bindir}/ex62${exeext}"
 
     fi
 
@@ -316,6 +320,7 @@ platforms = filter(p -> !(p["mpi"] == "mpitrampoline" && Sys.isfreebsd(p)), plat
 products = [
     ExecutableProduct("ex4", :ex4)
     ExecutableProduct("ex42", :ex42)
+    ExecutableProduct("ex62", :ex62)
 
     # Current default build, equivalent to Float64_Real_Int32
     LibraryProduct("libpetsc_double_real_Int64", :libpetsc, "\$libdir/petsc/double_real_Int64/lib")
