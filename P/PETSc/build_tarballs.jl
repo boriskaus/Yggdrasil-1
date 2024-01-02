@@ -30,18 +30,9 @@ sources = [
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir/petsc*
-#atomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch
-
-if [[ "${target}" == *-apple* ]]; then
-    BLAS_LAPACK_LIB=
-else
-    BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
-fi
 
 if [[ "${target}" == *-mingw* ]]; then
-    #atomic_patch -p1 $WORKSPACE/srcdir/patches/fix-header-cases.patch
     MPI_LIBS="${libdir}/msmpi.${dlext}"
-
 else
     if grep -q MPICH_NAME $prefix/include/mpi.h; then
         MPI_FFLAGS=
@@ -128,6 +119,12 @@ build_petsc()
         LIBFLAGS="-L${libdir} -lssp" 
     fi
 
+    # BLAS/LAPACK
+    if [[ "${target}" == *-mingw* ]]; then
+        BLAS_NAME=blastrampoline-5
+    else
+        BLAS_NAME=blastrampoline
+    fi
     if [[ "${target}" == aarch64-apple-* ]]; then    
         LIBFLAGS="-L${libdir}" 
         # Linking requires the function `__divdc3`, which is implemented in
@@ -136,7 +133,9 @@ build_petsc()
     else
         CLINK_FLAGS=""
     fi
-    BLAS_LAPACK_LIB="${libdir}/libblastrampoline.${dlext}"
+    BLAS_LAPACK_LIB="${libdir}/lib${BLAS_NAME}.${dlext}"
+
+
 
     if  [ ${DEBUG_FLAG} == 1 ]; then
         _COPTFLAGS='-O0 -g'
