@@ -160,7 +160,7 @@ build_petsc()
         TRIANGLE_LIB="--with-triangle-lib=${libdir}/libtriangle.${dlext}"
         TRIANGLE_INCLUDE="--with-triangle-include=${includedir}"
 
-        # Triangle_jll does not ship triangle.h, so we do (note that we used a PETSc-specific version of this)
+        # Triangle_jll does not ship triangle.h, so we do (note that we use a PETSc-specific version of this)
         cp ../headers/triangle.h $includedir
     else
         TRIANGLE_LIB=""
@@ -171,9 +171,9 @@ build_petsc()
     USE_TETGEN=0
     if [ -f "${libdir}/libtet.${dlext}" ]; then
         USE_TETGEN=1    
-        TETGEN_LIB="--with-tetgen-lib=${libdir}/libtet.${dlext}"
-        TETGEN_INCLUDE="--with-tetgen-include=${includedir}"
-        cp ../headers/tetgen.h $includedir
+        TETGEN_LIB="--with-ctetgen-lib=${libdir}/libtet.${dlext}"
+        TETGEN_INCLUDE="--with-ctetgen-include=${includedir}"
+        cp ../headers/ctetgen.h $includedir
     else
         TETGEN_LIB=""
         TETGEN_INCLUDE=""
@@ -232,12 +232,13 @@ build_petsc()
         ${MUMPS_INCLUDE} \
         --with-suitesparse=${USE_SUITESPARSE} \
         --with-hdf5=${USE_HDF5} \
-        ${TRIANGLE_LIB} \
-        ${TRIANGLE_INCLUDE} \
+        --with-triangle=${USE_TRIANGLE} \
+        ${TETGEN_LIB} \
+        ${TETGEN_INCLUDE} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
-
+"nn"
     if [[ "${target}" == *-mingw* ]]; then
         export CPPFLAGS="-Dpetsc_EXPORTS"
     elif [[ "${target}" == powerpc64le-* ]]; then
@@ -250,7 +251,6 @@ build_petsc()
         CFLAGS="${CFLAGS}" \
         FFLAGS="${FFLAGS}"
     make install
-
     # Remove PETSc.pc because petsc.pc also exists, causing conflicts on case insensitive file-systems.
     rm ${libdir}/petsc/${PETSC_CONFIG}/lib/pkgconfig/PETSc.pc
     # sed -i -e "s/-lpetsc/-lpetsc_${PETSC_CONFIG}/g" "$libdir/petsc/${PETSC_CONFIG}/lib/pkgconfig/petsc.pc"
