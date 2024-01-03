@@ -201,6 +201,9 @@ build_petsc()
     
     mkdir $libdir/petsc/${PETSC_CONFIG}
 
+    # ${TETGEN_LIB} \
+    # ${TETGEN_INCLUDE} \
+
     ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
         --CC=${CC} \
         --FC=${FC} \
@@ -233,12 +236,10 @@ build_petsc()
         --with-suitesparse=${USE_SUITESPARSE} \
         --with-hdf5=${USE_HDF5} \
         --with-triangle=${USE_TRIANGLE} \
-        ${TETGEN_LIB} \
-        ${TETGEN_INCLUDE} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
-"nn"
+
     if [[ "${target}" == *-mingw* ]]; then
         export CPPFLAGS="-Dpetsc_EXPORTS"
     elif [[ "${target}" == powerpc64le-* ]]; then
