@@ -1,5 +1,6 @@
 using BinaryBuilder
 using Base.BinaryPlatforms
+using Pkg
 const YGGDRASIL_DIR = "../.."
 include(joinpath(YGGDRASIL_DIR, "platforms", "mpi.jl"))
 
@@ -389,7 +390,8 @@ products = [
 dependencies = [
     Dependency("OpenBLAS32_jll"),
     Dependency("CompilerSupportLibraries_jll"),
-    Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
+    #Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
+    Dependency(PackageSpec(; name = "SuperLU_DIST_jll",  uuid = "9a1356b0-3c82-5da3-b77c-7c198e8bd7ab", url = "https://github.com/boriskaus/SuperLU_DIST_jll.jl")),
    # Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
     Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
     Dependency("HDF5_jll"; compat=HDF5_COMPAT_VERSION),
