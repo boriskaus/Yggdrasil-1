@@ -105,7 +105,7 @@ build_petsc()
 
     # See if we can install MUMPS
     USE_MUMPS=0    
-    if [ -f "${libdir}/libdmumps.${dlext}" ] && [ "${1}" == "double" ] && [ "${2}" == "real" ]; then
+    if [ -f "${libdir}/libdmumpspar.${dlext}" ] && [ "${1}" == "double" ] && [ "${2}" == "real" ]; then
         USE_MUMPS=1    
         MUMPS_LIB="--with-mumps-lib=${libdir}/libdmumpspar.${dlext} --with-scalapack-lib=${libdir}/libscalapack32.${dlext}"
         MUMPS_INCLUDE="--with-mumps-include=${includedir} --with-scalapack-include=${includedir}"
@@ -133,8 +133,10 @@ build_petsc()
     else
         CLINK_FLAGS=""
     fi
-    BLAS_LAPACK_LIB="${libdir}/lib${BLAS_NAME}.${dlext}"
-
+    #BLAS_LAPACK_LIB="${libdir}/lib${BLAS_NAME}.${dlext}"
+    
+    BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
+    
 
 
     if  [ ${DEBUG_FLAG} == 1 ]; then
@@ -203,7 +205,8 @@ build_petsc()
 
     # ${TETGEN_LIB} \
     # ${TETGEN_INCLUDE} \
-
+    #--with-suitesparse=${USE_SUITESPARSE} \
+       
     ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
         --CC=${CC} \
         --FC=${FC} \
@@ -233,7 +236,6 @@ build_petsc()
         --with-mumps=${USE_MUMPS} \
         ${MUMPS_LIB} \
         ${MUMPS_INCLUDE} \
-        --with-suitesparse=${USE_SUITESPARSE} \
         --with-hdf5=${USE_HDF5} \
         --with-triangle=${USE_TRIANGLE} \
         --SOSUFFIX=${PETSC_CONFIG} \
@@ -264,19 +266,37 @@ build_petsc()
         # julia> run(`$(PETSc_jll.ex42()) -stokes_ksp_monitor -log_view` )
         workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/ksp/ksp/tutorials/
         make --directory=${workdir} PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex42
-        install -Dvm 755 ${workdir}/ex42* "${bindir}/ex42${exeext}"
+        file=${workdir}/ex42
+        if [[ "${target}" == *-mingw* ]]; then
+            if [[ -f "$file" ]]; then
+                mv $file ${file}${exeext}
+            fi
+        fi
+        install -Dvm 755 ${workdir}/ex42${exeext} "${bindir}/ex42${exeext}"
 
         # This is a staggered grid Stokes example, as discussed in https://joss.theoj.org/papers/10.21105/joss.04531 
         # This can later be run with:
         # julia> run(`$(PETSc_jll.ex4()) -ksp_monitor -log_view` )
         workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/dm/impls/stag/tutorials/
         make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex4
-        install -Dvm 755 ${workdir}/ex4* "${bindir}/ex4${exeext}"
+        file=${workdir}/ex4
+        if [[ "${target}" == *-mingw* ]]; then
+            if [[ -f "$file" ]]; then
+                mv $file ${file}${exeext}
+            fi
+        fi
+        install -Dvm 755 ${workdir}/ex4${exeext} "${bindir}/ex4${exeext}"
 
         # This is a DMPLEX 2D/3D finite element Stokes example, as discussed https://petsc.org/main/tutorials/physics/guide_to_stokes/
         workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/snes/tutorials/
         make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex62
-        install -Dvm 755 ${workdir}/ex4* "${bindir}/ex62${exeext}"
+        file=${workdir}/ex62
+        if [[ "${target}" == *-mingw* ]]; then
+            if [[ -f "$file" ]]; then
+                mv $file ${file}${exeext}
+            fi
+        fi
+        install -Dvm 755 ${workdir}/ex62${exeext} "${bindir}/ex62${exeext}"
 
         # this is the example that PETSc uses to test the correct installation        
         workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/snes/tutorials/
@@ -314,7 +334,7 @@ build_petsc()
 }
 
 build_petsc double real Int64 opt
-build_petsc double real Int64 deb       # compile at least one debug version
+#build_petsc double real Int64 deb       # compile at least one debug version
 #build_petsc double real Int32 opt
 #build_petsc single real Int32 opt
 #build_petsc double complex Int32 opt
@@ -367,15 +387,15 @@ products = [
 ]
 
 dependencies = [
-    Dependency("OpenBLAS32_jll"; platforms=filter(!Sys.isapple, platforms)),
+    Dependency("OpenBLAS32_jll"),
     Dependency("CompilerSupportLibraries_jll"),
     Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
-    Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
+   # Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
     Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
     Dependency("HDF5_jll"; compat=HDF5_COMPAT_VERSION),
     Dependency("Triangle_jll"; compat=TRIANGLE_COMPAT_VERSION),
     Dependency("TetGen_jll"; compat=TETGEN_COMPAT_VERSION),
-    Dependency("libblastrampoline_jll"),
+    #Dependency("libblastrampoline_jll"),
     BuildDependency("LLVMCompilerRT_jll"; platforms=[Platform("aarch64", "macos")]),
     Dependency("SCALAPACK32_jll"),
     Dependency("METIS_jll"),
