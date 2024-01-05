@@ -10,7 +10,6 @@ petsc_version = v"3.20.0"
 MUMPS_COMPAT_VERSION = "5.6.2"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
-MPItrampoline_COMPAT_VERSION="5.3.1"    
 HDF5_COMPAT_VERSION="1.14.2"
 TRIANGLE_COMPAT_VERSION="1.6.2"
 TETGEN_COMPAT_VERSION="1.5.3"
@@ -19,6 +18,9 @@ SCALAPACK32_COMPAT_VERSION="2.2.1"
 METIS_COMPAT_VERSION="5.1.2"
 SCOTCH_COMPAT_VERSION="7.0.4"
 PARMETIS_COMPAT_VERSION="4.0.6"
+
+OpenMPI_version="4.1.6, 5.0"    # adding 4.1.6 to ensure that 32bit builds still work
+MPItrampoline_version="5.2.1"
 
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
 # require building SOWING which fails in all non-linux platforms.
@@ -76,9 +78,9 @@ build_petsc()
     USE_SUPERLU_DIST=0    
     SUPERLU_DIST_LIB=""
     SUPERLU_DIST_INCLUDE=""
-    if [ -f "${libdir}/libsuperlu_dist_Int32.${dlext}" ] &&  [ "${1}" == "double" ] &&  [ "${3}" == "Int64" ]; then
+    if [ -f "${libdir}/libsuperlu_dist_Int64.${dlext}" ] &&  [ "${1}" == "double" ]; then
         USE_SUPERLU_DIST=1    
-        #SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_${3}.${dlext}"
+        SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_${3}.${dlext}"
         SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_Int32.${dlext}"
         
         SUPERLU_DIST_INCLUDE="--with-superlu_dist-include=${includedir}"
@@ -356,7 +358,7 @@ augment_platform_block = """
 platforms = expand_gfortran_versions(supported_platforms(exclude=[Platform("i686", "windows"),
                                                                   Platform("i686","linux"; libc="musl"),
                                                                   Platform("aarch64","linux"; libc="musl")]))
-platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat=MPItrampoline_COMPAT_VERSION)
+platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat=MPItrampoline_version, OpenMPI_compat=OpenMPI_version)
 
 # Avoid platforms where the MPI implementation isn't supported
 # OpenMPI
@@ -415,6 +417,6 @@ ENV["MPITRAMPOLINE_DELAY_INIT"] = "1"
 # Build the tarballs.
 build_tarballs(ARGS, name, version, sources, script, platforms, products, dependencies;
                augment_platform_block, 
-               julia_compat="1.7", 
+               julia_compat="1.9", 
                preferred_gcc_version=v"9", 
                preferred_llvm_version=v"16")
