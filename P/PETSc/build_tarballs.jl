@@ -81,7 +81,7 @@ build_petsc()
     if [ -f "${libdir}/libsuperlu_dist_Int64.${dlext}" ] &&  [ "${1}" == "double" ]; then
         USE_SUPERLU_DIST=1    
         SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_${3}.${dlext}"
-        SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_Int32.${dlext}"
+        #SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_Int32.${dlext}"
         
         SUPERLU_DIST_INCLUDE="--with-superlu_dist-include=${includedir}"
     fi
