@@ -9,7 +9,7 @@ version = v"3.20.0"
 petsc_version = v"3.20.0"
 MUMPS_COMPAT_VERSION = "5.6.2"
 SUITESPARSE_COMPAT_VERSION = "7.2.1" 
-SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
+SUPERLUDIST_COMPAT_VERSION = "8.2.1"   
 HDF5_COMPAT_VERSION="1.14.2"
 TRIANGLE_COMPAT_VERSION="1.6.2"
 TETGEN_COMPAT_VERSION="1.5.3"
@@ -21,6 +21,7 @@ PARMETIS_COMPAT_VERSION="4.0.6"
 
 OpenMPI_version="4.1.6, 5.0"    # adding 4.1.6 to ensure that 32bit builds still work
 MPItrampoline_version="5.2.1"
+MicrosoftMPI_version="10.1.2"
 
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
 # require building SOWING which fails in all non-linux platforms.
@@ -33,6 +34,7 @@ sources = [
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir/petsc*
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch
 
 if [[ "${target}" == *-mingw* ]]; then
     MPI_LIBS="${libdir}/msmpi.${dlext}"
@@ -53,7 +55,7 @@ else
 
 fi
 
-
+#atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch         
 atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch          
 
@@ -84,6 +86,11 @@ build_petsc()
         #SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_Int32.${dlext}"
         
         SUPERLU_DIST_INCLUDE="--with-superlu_dist-include=${includedir}"
+        
+        # on linux, it doesn't find some of these libs, so lets copy them to 
+        cp ${libdir}/metis/metis_Int32_Real64/lib/* ${libdir}
+        cp ${libdir}/metis/metis_Int64_Real32/lib/* ${libdir}
+
     fi
     
     USE_SUITESPARSE=0
@@ -118,8 +125,10 @@ build_petsc()
     fi
     
     LIBFLAGS="-L${libdir}" 
+    
+
     if [[ "${target}" == *-mingw* ]]; then
-        LIBFLAGS="-L${libdir} -lssp" 
+        LIBFLAGS="-L${libdir} -lssp -lmsmpi"
     fi
 
     # BLAS/LAPACK
@@ -140,8 +149,6 @@ build_petsc()
     
     BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
     
-
-
     if  [ ${DEBUG_FLAG} == 1 ]; then
         _COPTFLAGS='-O0 -g'
         _CXXOPTFLAGS='-O0 -g'
@@ -210,40 +217,62 @@ build_petsc()
     # ${TETGEN_INCLUDE} \
     #--with-suitesparse=${USE_SUITESPARSE} \
        
-    ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
-        --CC=${CC} \
-        --FC=${FC} \
-        --CXX=${CXX} \
-        --COPTFLAGS=${_COPTFLAGS} \
-        --CXXOPTFLAGS=${_CXXOPTFLAGS} \
-        --FOPTFLAGS=${_FOPTFLAGS}  \
-        --with-blaslapack-lib=${BLAS_LAPACK_LIB}  \
-        --CFLAGS='-fno-stack-protector '  \
-        --FFLAGS="${MPI_FFLAGS}"  \
-        --LDFLAGS="${LIBFLAGS}"  \
-        --CC_LINKER_FLAGS="${CLINK_FLAGS}" \
-        --with-64-bit-indices=${USE_INT64}  \
-        --with-debugging=${DEBUG_FLAG}  \
-        --with-batch \
-        --with-mpi-lib="${MPI_LIBS}" \
-        --known-mpi-int64_t=0 \
-        --with-mpi-include="${includedir}" \
-        --with-sowing=0 \
-        --with-precision=${1}  \
-        --with-scalar-type=${2} \
-        --with-pthread=0 \
-        --PETSC_ARCH=${target}_${PETSC_CONFIG} \
-        --with-superlu_dist=${USE_SUPERLU_DIST} \
-        ${SUPERLU_DIST_LIB} \
-        ${SUPERLU_DIST_INCLUDE} \
-        --with-mumps=${USE_MUMPS} \
-        ${MUMPS_LIB} \
-        ${MUMPS_INCLUDE} \
-        --with-hdf5=${USE_HDF5} \
-        --with-triangle=${USE_TRIANGLE} \
-        --SOSUFFIX=${PETSC_CONFIG} \
-        --with-shared-libraries=1 \
-        --with-clean=1
+    #./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
+    #    --CC=${CC} \
+    #    --FC=${FC} \
+    #    --CXX=${CXX} \
+    #    --COPTFLAGS=${_COPTFLAGS} \
+    #    --CXXOPTFLAGS=${_CXXOPTFLAGS} \
+    #    --FOPTFLAGS=${_FOPTFLAGS}  \
+    #    --with-blaslapack-lib=${BLAS_LAPACK_LIB}  \
+    #    --CFLAGS='-fno-stack-protector '  \
+    #    --FFLAGS="${MPI_FFLAGS}"  \
+    #    --LDFLAGS="${LIBFLAGS}"  \
+    #    --CC_LINKER_FLAGS="${CLINK_FLAGS}" \
+    #    --with-64-bit-indices=${USE_INT64}  \
+    #    --with-debugging=${DEBUG_FLAG}  \
+    #    --with-batch \
+    #    --with-mpi-lib="${MPI_LIBS}" \
+    #    --known-mpi-int64_t=0 \
+    #    --with-mpi-include="${includedir}" \
+    #    --with-sowing=0 \
+    #    --with-precision=${1}  \
+    #    --with-scalar-type=${2} \
+    #    --with-pthread=0 \
+    #    --PETSC_ARCH=${target}_${PETSC_CONFIG} \
+    #    --with-superlu_dist=${USE_SUPERLU_DIST} \
+    #    ${SUPERLU_DIST_LIB} \
+    #    ${SUPERLU_DIST_INCLUDE} \
+    #    --with-mumps=${USE_MUMPS} \
+    #    ${MUMPS_LIB} \
+    #    ${MUMPS_INCLUDE} \
+    #    --with-hdf5=${USE_HDF5} \
+    #    --with-triangle=${USE_TRIANGLE} \
+    #    --SOSUFFIX=${PETSC_CONFIG} \
+    #    --with-shared-libraries=1 \
+    #    --with-clean=1
+
+
+        ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
+            --CC=${CC} \
+            --FC=${FC} \
+            --CXX=${CXX} \
+            --COPTFLAGS=${_COPTFLAGS} \
+            --CXXOPTFLAGS=${_CXXOPTFLAGS} \
+            --FOPTFLAGS=${_FOPTFLAGS}  \
+            --download-fblaslapack=1  \
+            --CFLAGS='-fno-stack-protector '  \
+            --FFLAGS="${MPI_FFLAGS}"  \
+            --with-64-bit-indices=${USE_INT64}  \
+            --with-debugging=${DEBUG_FLAG}  \
+            --with-batch \
+            --with-mpi=0 \
+            --with-precision=${1}  \
+            --with-scalar-type=${2} \
+            --PETSC_ARCH=${target}_${PETSC_CONFIG} \
+            --SOSUFFIX=${PETSC_CONFIG} \
+            --with-shared-libraries=1 \
+            --with-clean=1
 
     if [[ "${target}" == *-mingw* ]]; then
         export CPPFLAGS="-Dpetsc_EXPORTS"
@@ -358,7 +387,10 @@ augment_platform_block = """
 platforms = expand_gfortran_versions(supported_platforms(exclude=[Platform("i686", "windows"),
                                                                   Platform("i686","linux"; libc="musl"),
                                                                   Platform("aarch64","linux"; libc="musl")]))
-platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat=MPItrampoline_version, OpenMPI_compat=OpenMPI_version)
+platforms, platform_dependencies = MPI.augment_platforms(platforms; 
+                                        MPItrampoline_compat=MPItrampoline_version, 
+                                        OpenMPI_compat=OpenMPI_version,
+                                        MicrosoftMPI_compat=MicrosoftMPI_version)
 
 # Avoid platforms where the MPI implementation isn't supported
 # OpenMPI
@@ -390,21 +422,21 @@ products = [
 ]
 
 dependencies = [
-    Dependency("OpenBLAS32_jll"),
+    #Dependency("OpenBLAS32_jll"),
     Dependency("CompilerSupportLibraries_jll"),
     #Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
-    Dependency(PackageSpec(; name = "SuperLU_DIST_jll",  uuid = "9a1356b0-3c82-5da3-b77c-7c198e8bd7ab", url = "https://github.com/boriskaus/SuperLU_DIST_jll.jl")),
-   # Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
-    Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
-    Dependency("HDF5_jll"; compat=HDF5_COMPAT_VERSION),
-    Dependency("Triangle_jll"; compat=TRIANGLE_COMPAT_VERSION),
-    Dependency("TetGen_jll"; compat=TETGEN_COMPAT_VERSION),
+    #Dependency(PackageSpec(; name = "SuperLU_DIST_jll",  uuid = "9a1356b0-3c82-5da3-b77c-7c198e8bd7ab", url = "https://github.com/boriskaus/SuperLU_DIST_jll.jl")),
+    #Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
+    #Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
+    #Dependency("HDF5_jll"; compat=HDF5_COMPAT_VERSION),
+    #Dependency("Triangle_jll"; compat=TRIANGLE_COMPAT_VERSION),
+    #Dependency("TetGen_jll"; compat=TETGEN_COMPAT_VERSION),
     #Dependency("libblastrampoline_jll"),
     BuildDependency("LLVMCompilerRT_jll"; platforms=[Platform("aarch64", "macos")]),
-    Dependency("SCALAPACK32_jll"),
-    Dependency("METIS_jll"),
-    Dependency("SCOTCH_jll"),
-    Dependency("PARMETIS_jll"),
+    #Dependency("SCALAPACK32_jll"),
+    #Dependency("METIS_jll"),
+    #Dependency("SCOTCH_jll"),
+    #Dependency("PARMETIS_jll"),
     
 ]
 append!(dependencies, platform_dependencies)
@@ -418,5 +450,4 @@ ENV["MPITRAMPOLINE_DELAY_INIT"] = "1"
 build_tarballs(ARGS, name, version, sources, script, platforms, products, dependencies;
                augment_platform_block, 
                julia_compat="1.9", 
-               preferred_gcc_version=v"9", 
-               preferred_llvm_version=v"16")
+               preferred_gcc_version=v"6")
