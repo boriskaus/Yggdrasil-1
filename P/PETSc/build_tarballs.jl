@@ -6,15 +6,8 @@ include(joinpath(YGGDRASIL_DIR, "platforms", "mpi.jl"))
 name = "PETSc"
 version = v"3.20.5"
 petsc_version = v"3.20.5"
-SUPERLUDIST_COMPAT_VERSION = "8.2.1"   
-BLASTRAMPOLINE_COMPAT_VERSION="5.8.0"    
-SUITESPARSE_COMPAT_VERSION = "7.7"       
 
-MUMPS_COMPAT_VERSION = "5.6.2"
 SCALAPACK32_COMPAT_VERSION="2.2.1"
-METIS_COMPAT_VERSION="5.1.2"
-SCOTCH_COMPAT_VERSION="7.0.4"
-PARMETIS_COMPAT_VERSION="4.0.6"
 
 MPItrampoline_compat_version="5.2.1"
 MicrosoftMPI_compat_version="~10.1.4" 
@@ -36,7 +29,6 @@ apk del cmake
 
 cd $WORKSPACE/srcdir/petsc*
 atomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch
-
 
 if [[ "${target}" == *-mingw* ]]; then
     # On windows, it compiles fine but we obtain a following runtime error:
