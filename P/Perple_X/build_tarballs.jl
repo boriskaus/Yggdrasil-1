@@ -14,7 +14,7 @@ sources = [
 script = raw"""
 cd $WORKSPACE/srcdir/Perple_X/src/
 
-FilesArray=("vertex"  "build"  "actcor"  "convex" "ctransf" "fluids" "frendly" "meemum" "pspts" "pssect" "pstable" "psvdraw" "pt2curv" "werami")
+FilesArray=("vertex"  "build"  "actcor"  "convex" "ctransf" "fluids" "frendly" "meemum" "pspts" "pssect" "pstable" "psvdraw" "pt2curv" "werami" "MC_fit")
 
 # 1) compile binaries
 make -j${nproc} -f makefile EXT=${exeext}
@@ -84,6 +84,9 @@ products = [
     
     ExecutableProduct("frendly", :frendly),
     LibraryProduct("libfrendly", :libfrendly),
+
+    ExecutableProduct("MC_fit", :MC_fit),
+    LibraryProduct("libMC_fit", :libMC_fit),
 ]
 
 # Dependencies that must be installed before this package can be built
